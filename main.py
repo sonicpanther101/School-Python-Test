@@ -7,12 +7,23 @@ STOCK_FILE = "stock.csv"
 
 
 pastCustomerOrders = {}
-with open(CUSTOMERS_FILE,'r') as data:
-
+with open(CUSTOMERS_FILE, "r") as data:
     for order in csv.reader(data):
-        print(order)
-        pastCustomerOrders[order[0]]["recieptIDs"] = order[1]
-        pastCustomerOrders[order[0]]["itemsCurrentlyRented"][order[2]] = order[3] 
+        if order[0] not in pastCustomerOrders:
+            pastCustomerOrders[order[0]] = {
+                "recieptIDs": [],
+                "itemsCurrentlyRented": {}
+            }
+        pastCustomerOrders[order[0]]["recieptIDs"].append(order[1])
+        items_currently_rented = {key: int(value) for key, value in eval(order[2]).items()}
+        for item, amount in items_currently_rented.items():
+            if item in pastCustomerOrders[order[0]]["itemsCurrentlyRented"]:
+                pastCustomerOrders[order[0]]["itemsCurrentlyRented"][item] += amount
+            else:
+                pastCustomerOrders[order[0]]["itemsCurrentlyRented"][item] = amount
+
+print(pastCustomerOrders)
+
 
 class Customers:
     def __init__(self, name, ID, items, amounts):
