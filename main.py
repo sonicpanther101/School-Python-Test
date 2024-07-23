@@ -12,7 +12,7 @@ with open(CUSTOMERS_FILE,'r') as data:
     for order in csv.reader(data):
         print(order)
         pastCustomerOrders[order[0]]["recieptIDs"] = order[1]
-        pastCustomerOrders[order[0]]["itemsCurrentlyRented"] = order[2]
+        pastCustomerOrders[order[0]]["itemsCurrentlyRented"][order[2]] = order[3] 
 
 class Customers:
     def __init__(self, name, ID, items, amounts):
@@ -25,3 +25,4 @@ class Customers:
         self.storeDetails()
 
     def updateStock(self):
+        pass
