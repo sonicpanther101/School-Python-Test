@@ -200,7 +200,7 @@ class App(customtkinter.CTk):
             if item.get() is not None:
                 items[itemsNames[i]] = item.get()
 
-        customers.append(Customers(name, ID, items))
+        customers.append(Customers(name, ID, items)) 
 
     # button = customtkinter.CTkButton(
     #     app, text="Submit", command=submitNewOrder(name, ID, items)
