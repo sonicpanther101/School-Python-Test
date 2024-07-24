@@ -71,6 +71,8 @@ class Customers:
             file.write(order)
 
 
+# https://customtkinter.tomschimansky.com/tutorial/spinbox
+
 class WidgetName(customtkinter.CTkFrame):
     def __init__(self, *args,
                  width: int = 100,
@@ -107,13 +109,13 @@ class FloatSpinbox(customtkinter.CTkFrame):
         self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
 
         # default value
-        self.entry.insert(0, "0.0")
+        self.entry.insert(0, "0")
 
     def add_button_callback(self):
         if self.command is not None:
             self.command()
         try:
-            value = float(self.entry.get()) + self.step_size
+            value = int(self.entry.get()) + self.step_size
             self.entry.delete(0, "end")
             self.entry.insert(0, value)
         except ValueError:
@@ -123,7 +125,7 @@ class FloatSpinbox(customtkinter.CTkFrame):
         if self.command is not None:
             self.command()
         try:
-            value = float(self.entry.get()) - self.step_size
+            value = int(self.entry.get()) - self.step_size if int(self.entry.get()) > 0 else 0
             self.entry.delete(0, "end")
             self.entry.insert(0, value)
         except ValueError:
@@ -140,23 +142,25 @@ class FloatSpinbox(customtkinter.CTkFrame):
         self.entry.insert(0, str(float(value)))
 
 
-def submitNewOrder(name, ID, items):
-    customer = Customers(name, ID, items)
+class App(customtkinter.CTk):
+    def __init__(self):
+        super().__init__()
 
-def main():
+        self.title("my app")
+        self.geometry("400x400")
+        # self.grid_columnconfigure(3, weight=1)
+        # self.grid_rowconfigure((0, 0), weight=1)
 
-    app = customtkinter.CTk()
+        self.items = [FloatSpinbox(self, width=150, step_size=1) for i in range(6)]
 
-    spinbox_1 = FloatSpinbox(app, width=150, step_size=3)
-    spinbox_1.pack(padx=20, pady=20)
+        for i, item in enumerate(self.items):
+            item.grid(row=i//3, column=i%3, padx=20, pady=20)
 
-    spinbox_1.set(35)
-    print(spinbox_1.get())
+    def submitNewOrder(name, ID, items):
+        customer = Customers(name, ID, items)
 
-    app.mainloop()
-    # app = customtkinter.CTk()
-    # app.title("my app")
-    # app.geometry("400x400")
+
+    
 
     # button = customtkinter.CTkButton(
     #     app, text="Submit", command=submitNewOrder(name, ID, items)
@@ -166,5 +170,5 @@ def main():
     # app.mainloop()
 
 
-if __name__ == "__main__":
-    main()
+app = App()
+app.mainloop()
