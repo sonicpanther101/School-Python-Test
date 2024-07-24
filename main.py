@@ -1,5 +1,5 @@
 import csv
-import math
+import random
 import customtkinter
 from typing import Union
 from typing import Callable
@@ -9,6 +9,9 @@ from typing import Callable
 CUSTOMERS_FILE = "customers.csv"
 STOCK_FILE = "stock.csv"
 
+itemsNames = ["test1", "test2", "test3", "test4", "test5", "test6"]
+
+customers = []
 
 # load past customer orders
 pastCustomerOrders = {}
@@ -38,6 +41,7 @@ def resetStock():
         file.write("test3,100\n")
         file.write("test4,100\n")
         file.write("test5,100\n")
+        file.write("test6,100\n")
 
 
 class Customers:
@@ -73,20 +77,22 @@ class Customers:
 
 # https://customtkinter.tomschimansky.com/tutorial/spinbox
 
+
 class WidgetName(customtkinter.CTkFrame):
-    def __init__(self, *args,
-                 width: int = 100,
-                 height: int = 32,
-                 **kwargs):
+    def __init__(self, *args, width: int = 100, height: int = 32, **kwargs):
         super().__init__(*args, width=width, height=height, **kwargs)
 
+
 class FloatSpinbox(customtkinter.CTkFrame):
-    def __init__(self, *args,
-                 width: int = 100,
-                 height: int = 32,
-                 step_size: Union[int, float] = 1,
-                 command: Callable = None,
-                 **kwargs):
+    def __init__(
+        self,
+        *args,
+        width: int = 100,
+        height: int = 32,
+        step_size: Union[int, float] = 1,
+        command: Callable = None,
+        **kwargs,
+    ):
         super().__init__(*args, width=width, height=height, **kwargs)
 
         self.step_size = step_size
@@ -97,15 +103,27 @@ class FloatSpinbox(customtkinter.CTkFrame):
         self.grid_columnconfigure((0, 2), weight=0)  # buttons don't expand
         self.grid_columnconfigure(1, weight=1)  # entry expands
 
-        self.subtract_button = customtkinter.CTkButton(self, text="-", width=height-6, height=height-6,
-                                                       command=self.subtract_button_callback)
+        self.subtract_button = customtkinter.CTkButton(
+            self,
+            text="-",
+            width=height - 6,
+            height=height - 6,
+            command=self.subtract_button_callback,
+        )
         self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
 
-        self.entry = customtkinter.CTkEntry(self, width=width-(2*height), height=height-6, border_width=0)
+        self.entry = customtkinter.CTkEntry(
+            self, width=width - (2 * height), height=height - 6, border_width=0
+        )
         self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
 
-        self.add_button = customtkinter.CTkButton(self, text="+", width=height-6, height=height-6,
-                                                  command=self.add_button_callback)
+        self.add_button = customtkinter.CTkButton(
+            self,
+            text="+",
+            width=height - 6,
+            height=height - 6,
+            command=self.add_button_callback,
+        )
         self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
 
         # default value
@@ -125,7 +143,11 @@ class FloatSpinbox(customtkinter.CTkFrame):
         if self.command is not None:
             self.command()
         try:
-            value = int(self.entry.get()) - self.step_size if int(self.entry.get()) > 0 else 0
+            value = (
+                int(self.entry.get()) - self.step_size
+                if int(self.entry.get()) > 0
+                else 0
+            )
             self.entry.delete(0, "end")
             self.entry.insert(0, value)
         except ValueError:
@@ -144,6 +166,7 @@ class FloatSpinbox(customtkinter.CTkFrame):
 
 class App(customtkinter.CTk):
     def __init__(self):
+        global itemsNames
         super().__init__()
 
         self.title("my app")
@@ -151,16 +174,33 @@ class App(customtkinter.CTk):
         # self.grid_columnconfigure(3, weight=1)
         # self.grid_rowconfigure((0, 0), weight=1)
 
+        self.nameLabel = customtkinter.CTkLabel(self, text="Name:")
+        self.nameLabel.grid(row=0, column=0, padx=20, pady=20)
+        self.name = customtkinter.CTkEntry(self, width=150, height=30, border_width=0)
+        self.name.grid(row=0, column=1, padx=20, pady=20)
+
+        self.itemNameLabels = [customtkinter.CTkLabel(self, text=itemsNames[i]) for i in range(6)]
         self.items = [FloatSpinbox(self, width=150, step_size=1) for i in range(6)]
 
+        for i, item in enumerate(self.itemNameLabels):
+            item.grid(row=((i + 3) // 3) * 2, column=i % 3, padx=20, pady=20) # +3 so there is an empty row for the name
         for i, item in enumerate(self.items):
-            item.grid(row=i//3, column=i%3, padx=20, pady=20)
+            item.grid(
+                row=((i + 3) // 3) * 2 + 1, column=i % 3, padx=20, pady=20)  # +3 so there is an empty row for the name
+            
+        self.submitButton = customtkinter.CTkButton(self, text="Submit", command=self.submitNewOrder)
+        self.submitButton.grid(row=7, column=1, padx=20, pady=20)
 
-    def submitNewOrder(name, ID, items):
-        customer = Customers(name, ID, items)
+    def submitNewOrder(self):
+        global itemsNames, customers
+        name = self.name.get()
+        ID = random.randint(1000, 9999)
+        items = {}
+        for i, item in enumerate(self.items):
+            if item.get() is not None:
+                items[itemsNames[i]] = item.get()
 
-
-    
+        customers.append(Customers(name, ID, items))
 
     # button = customtkinter.CTkButton(
     #     app, text="Submit", command=submitNewOrder(name, ID, items)
