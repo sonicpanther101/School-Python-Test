@@ -1,5 +1,8 @@
 import csv
 import math
+import customtkinter
+from typing import Union
+from typing import Callable
 
 # https://www.geeksforgeeks.org/load-csv-data-into-list-and-dictionary-using-python/
 
@@ -14,18 +17,20 @@ with open(CUSTOMERS_FILE, "r") as data:
         if order[0] not in pastCustomerOrders:
             pastCustomerOrders[order[0]] = {
                 "recieptIDs": [],
-                "itemsCurrentlyRented": {}
+                "itemsCurrentlyRented": {},
             }
         pastCustomerOrders[order[0]]["recieptIDs"].append(order[1])
-        itemsCurrentlyRented = {key: int(value) for key, value in eval(order[2]).items()}
+        itemsCurrentlyRented = {
+            key: int(value) for key, value in eval(order[2]).items()
+        }
         for item, amount in itemsCurrentlyRented.items():
             if item in pastCustomerOrders[order[0]]["itemsCurrentlyRented"]:
                 pastCustomerOrders[order[0]]["itemsCurrentlyRented"][item] += amount
             else:
                 pastCustomerOrders[order[0]]["itemsCurrentlyRented"][item] = amount
 
-def resetStock():
 
+def resetStock():
     # https://www.w3schools.com/python/python_file_write.asp
     with open(STOCK_FILE, "w") as file:
         file.write("test1,100\n")
@@ -33,6 +38,7 @@ def resetStock():
         file.write("test3,100\n")
         file.write("test4,100\n")
         file.write("test5,100\n")
+
 
 class Customers:
     def __init__(self, name, ID, items):
@@ -53,7 +59,7 @@ class Customers:
                     lineParts = line.split(",")
                     lineParts[1] = str(int(lineParts[1]) - amount)
                     lines[i] = ",".join(lineParts)
-                    lines[i]+="\n"
+                    lines[i] += "\n"
 
         with open(STOCK_FILE, "w") as file:
             file.writelines(lines)
@@ -65,4 +71,100 @@ class Customers:
             file.write(order)
 
 
-customers = Customers("name", 1567654356, {"test1":50})
+class WidgetName(customtkinter.CTkFrame):
+    def __init__(self, *args,
+                 width: int = 100,
+                 height: int = 32,
+                 **kwargs):
+        super().__init__(*args, width=width, height=height, **kwargs)
+
+class FloatSpinbox(customtkinter.CTkFrame):
+    def __init__(self, *args,
+                 width: int = 100,
+                 height: int = 32,
+                 step_size: Union[int, float] = 1,
+                 command: Callable = None,
+                 **kwargs):
+        super().__init__(*args, width=width, height=height, **kwargs)
+
+        self.step_size = step_size
+        self.command = command
+
+        self.configure(fg_color=("gray78", "gray28"))  # set frame color
+
+        self.grid_columnconfigure((0, 2), weight=0)  # buttons don't expand
+        self.grid_columnconfigure(1, weight=1)  # entry expands
+
+        self.subtract_button = customtkinter.CTkButton(self, text="-", width=height-6, height=height-6,
+                                                       command=self.subtract_button_callback)
+        self.subtract_button.grid(row=0, column=0, padx=(3, 0), pady=3)
+
+        self.entry = customtkinter.CTkEntry(self, width=width-(2*height), height=height-6, border_width=0)
+        self.entry.grid(row=0, column=1, columnspan=1, padx=3, pady=3, sticky="ew")
+
+        self.add_button = customtkinter.CTkButton(self, text="+", width=height-6, height=height-6,
+                                                  command=self.add_button_callback)
+        self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
+
+        # default value
+        self.entry.insert(0, "0.0")
+
+    def add_button_callback(self):
+        if self.command is not None:
+            self.command()
+        try:
+            value = float(self.entry.get()) + self.step_size
+            self.entry.delete(0, "end")
+            self.entry.insert(0, value)
+        except ValueError:
+            return
+
+    def subtract_button_callback(self):
+        if self.command is not None:
+            self.command()
+        try:
+            value = float(self.entry.get()) - self.step_size
+            self.entry.delete(0, "end")
+            self.entry.insert(0, value)
+        except ValueError:
+            return
+
+    def get(self) -> Union[float, None]:
+        try:
+            return float(self.entry.get())
+        except ValueError:
+            return None
+
+    def set(self, value: float):
+        self.entry.delete(0, "end")
+        self.entry.insert(0, str(float(value)))
+
+
+def submitNewOrder(name, ID, items):
+    customer = Customers(name, ID, items)
+
+def main():
+
+    app = customtkinter.CTk()
+
+    spinbox_1 = FloatSpinbox(app, width=150, step_size=3)
+    spinbox_1.pack(padx=20, pady=20)
+
+    spinbox_1.set(35)
+    print(spinbox_1.get())
+
+    app.mainloop()
+    # app = customtkinter.CTk()
+    # app.title("my app")
+    # app.geometry("400x400")
+
+    # button = customtkinter.CTkButton(
+    #     app, text="Submit", command=submitNewOrder(name, ID, items)
+    # )
+    # button.grid(row=0, column=0, padx=20, pady=20)
+
+    # app.mainloop()
+
+
+if __name__ == "__main__":
+    main()
