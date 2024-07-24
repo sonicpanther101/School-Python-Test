@@ -1,4 +1,5 @@
 import csv
+import math
 
 # https://www.geeksforgeeks.org/load-csv-data-into-list-and-dictionary-using-python/
 
@@ -24,6 +25,8 @@ with open(CUSTOMERS_FILE, "r") as data:
                 pastCustomerOrders[order[0]]["itemsCurrentlyRented"][item] = amount
 
 def resetStock():
+
+    # https://www.w3schools.com/python/python_file_write.asp
     with open(STOCK_FILE, "w") as file:
         file.write("test1,100\n")
         file.write("test2,100\n")
