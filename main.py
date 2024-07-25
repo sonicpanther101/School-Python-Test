@@ -78,7 +78,7 @@ def resetStock():
                 "Cutlery Sets,100\n",
                 "BBQs,100\n",
                 "Table Cloths,100\n",
-                "Napkin Rings,100",
+                "Napkin Rings,100\n",
             ]
         )
 
@@ -352,7 +352,7 @@ class App(customtkinter.CTk):
         for i, item in enumerate(self.items):
             amount = item.get()
             if int(amount) > stock[ITEM_NAMES[i]]:
-                self.popup(f"Insufficient stock for {ITEM_NAMES[i].lower()}")
+                self.popup(f"Insufficient stock for {ITEM_NAMES[i].lower()}\n{stock[ITEM_NAMES[i]]} {ITEM_NAMES[i].lower()} available")
                 return False
 
         return True
