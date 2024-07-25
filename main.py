@@ -6,7 +6,7 @@ from typing import (
     Callable,
     List,
 )  # to use FloatSpinbox from the customtkinter tutorial
-from PIL import Image # to load images
+from PIL import Image  # to load images
 
 # https://www.geeksforgeeks.org/load-csv-data-into-list-and-dictionary-using-python/
 
@@ -14,7 +14,16 @@ from PIL import Image # to load images
 CUSTOMERS_FILE = "customers.csv"
 STOCK_FILE = "stock.csv"
 
-ITEM_NAMES = ["Chairs", "Tables", "Cutlery Sets", "BBQs", "Table Cloths", "Napkin Rings"]
+ITEM_NAMES = [
+    "Chairs",
+    "Tables",
+    "Cutlery Sets",
+    "BBQs",
+    "Table Cloths",
+    "Napkin Rings",
+]
+
+ITEM_IMAGES = [f"images/{ITEM_NAME}.png" for ITEM_NAME in ITEM_NAMES]
 
 
 def loadPastCustomerOrders():
@@ -47,6 +56,15 @@ def loadPastCustomerOrders():
                     pastCustomerOrders[order[0]]["itemsCurrentlyRented"][item] = amount
 
     return pastCustomerOrders
+
+def loadStock():
+    stock = {}
+    with open(STOCK_FILE, "r") as data:
+        for item in csv.reader(data):
+            stock[item[0]] = int(item[1])
+    return stock
+
+stock = loadStock()
 
 
 # for testing or for on an admin page if I added that
@@ -213,7 +231,7 @@ class App(customtkinter.CTk):
 
         # configure window
         self.title("Julie's Party Hire Store")
-        self.geometry("600x450")
+        self.geometry("600x750")
         self.resizable(width=False, height=False)
 
         # create widgets
@@ -224,6 +242,18 @@ class App(customtkinter.CTk):
         self.name.grid(row=0, column=1, padx=20, pady=20)
 
         # create item entrys
+        self.itemImageImports = [
+            customtkinter.CTkImage(
+                light_image=Image.open(ITEM_IMAGES[i]),
+                dark_image=Image.open(ITEM_IMAGES[i]),
+                size=(100, 100),
+            )
+            for i in range(6)
+        ]
+        self.itemImages = [
+            customtkinter.CTkLabel(self, image=self.itemImageImports[i], text="")
+            for i in range(6)
+        ]
         self.itemNameLabels = [
             customtkinter.CTkLabel(self, text=ITEM_NAMES[i]) for i in range(6)
         ]
@@ -236,8 +266,20 @@ class App(customtkinter.CTk):
                 # use topRowOffset so there is an empty row for the name
                 # used i%3 to make sure there are 3 items in each column
                 # used i//3 to make sure that every 3 items, it goes to a new row
-                # used *2 to leave a space for the items in between
-                row=((i + topRowOffset) // 3) * 2,
+                # used *3 to leave a space for the items and images in between
+                row=((i + topRowOffset) // 3) * 3,
+                column=i % 3,
+                padx=20,
+                pady=20,
+            )
+        for i, item in enumerate(self.itemImages):
+            item.grid(
+                # use topRowOffset so there is an empty row for the name
+                # used i%3 to make sure there are 3 items in each column
+                # used i//3 to make sure that every 3 items, it goes to a new row
+                # used +1 for rows to offset item images from item names
+                # used *3 to leave a space for the items and labels in between
+                row=((i + topRowOffset) // 3) * 3 + 1,
                 column=i % 3,
                 padx=20,
                 pady=20,
@@ -247,9 +289,9 @@ class App(customtkinter.CTk):
                 # use topRowOffset so there is an empty row for the name
                 # used i%3 to make sure there are 3 items in each column
                 # used i//3 to make sure that every 3 items, it goes to a new row
-                # used +1 for rows to offset items from item names
-                # used *2 to leave a space for the item names in between
-                row=((i + topRowOffset) // 3) * 2 + 1,
+                # used +2 for rows to offset items from item names and images
+                # used *3 to leave a space for the item names and images in between
+                row=((i + topRowOffset) // 3) * 3 + 2,
                 column=i % 3,
                 padx=20,
                 pady=20,
@@ -259,7 +301,7 @@ class App(customtkinter.CTk):
         self.submitButton = customtkinter.CTkButton(
             self, text="Submit", command=self.submitNewOrder
         )
-        self.submitButton.grid(row=7, column=1, padx=20, pady=20)
+        self.submitButton.grid(row=10, column=1, padx=20, pady=20)
 
     # finish the transaction by storing the order in a file and showing the reciept
     def submitNewOrder(self):
@@ -299,11 +341,19 @@ class App(customtkinter.CTk):
                 if item.get() is not None and int(item.get()) > 0:
                     validItems = True
             except ValueError:
+                self.popup("Please enter a valid\n amount for each item")
                 return False
 
         if not validItems:
             self.popup("Please enter a valid\n amount for each item")
             return False
+        
+        # Check stock level
+        for i, item in enumerate(self.items):
+            amount = item.get()
+            if int(amount) > stock[ITEM_NAMES[i]]:
+                self.popup(f"Insufficient stock for {ITEM_NAMES[i].lower()}")
+                return False
 
         return True
 
