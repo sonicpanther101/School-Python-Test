@@ -10,9 +10,13 @@ Foobar is a Python library for dealing with word pluralization.
 
 ## Testing
 
-| Input           | Expected Output | Actual Output                   |
-|-----------------|-----------------|---------------------------------|
-| No name entered | Ask for a name  | Popup appears asking for a name |
+| Input                    | Expected Output                       | Actual Output                                          |
+|--------------------------|---------------------------------------|--------------------------------------------------------|
+| No name entered          | Ask for a name                        | Popup appears asking user for a name                   |
+| Name set to "Adam"       | Ask for full name                     | Popup appears asking user for their full name          |
+| No item values set       | Ask user to add items                 | Popup appears asking user to add items                 |
+| All items values are 0   | Ask user to add valid amount of items | Popup appears asking user to add valid amount of items |
+| Item values set to "six" | Ask user to add valid amount of items | Popup appears asking user to add valid amount of items |
 
 History of testing can be seen [here.](https://github.com/sonicpanther101/School-Python-Test/commits/main/)
 
