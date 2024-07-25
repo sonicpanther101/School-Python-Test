@@ -1,1 +1,3 @@
-windowsVenv/Scripts/activate.bat && python main.py
+python -m pip install -r requirements.txt
+
+python main.py
