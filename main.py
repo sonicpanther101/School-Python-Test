@@ -6,6 +6,7 @@ from typing import (
     Callable,
     List,
 )  # to use FloatSpinbox from the customtkinter tutorial
+from PIL import Image # to load images
 
 # https://www.geeksforgeeks.org/load-csv-data-into-list-and-dictionary-using-python/
 
@@ -13,7 +14,7 @@ from typing import (
 CUSTOMERS_FILE = "customers.csv"
 STOCK_FILE = "stock.csv"
 
-ITEM_NAMES = ["test1", "test2", "test3", "test4", "test5", "test6"]
+ITEM_NAMES = ["Chairs", "Tables", "Cutlery Sets", "BBQs", "Table Cloths", "Napkin Rings"]
 
 
 def loadPastCustomerOrders():
@@ -54,12 +55,12 @@ def resetStock():
     with open(STOCK_FILE, "w") as file:
         file.writelines(
             [
-                "test1,100\n",
-                "test2,100\n",
-                "test3,100\n",
-                "test4,100\n",
-                "test5,100\n",
-                "test6,100",
+                "Chairs,100\n",
+                "Tables,100\n",
+                "Cutlery Sets,100\n",
+                "BBQs,100\n",
+                "Table Cloths,100\n",
+                "Napkin Rings,100",
             ]
         )
 
