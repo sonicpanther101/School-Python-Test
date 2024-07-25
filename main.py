@@ -1,38 +1,48 @@
-import csv
-import random
-import customtkinter
-from typing import Union
-from typing import Callable
+import csv # to read and write csv files
+import random # to generate random reciept IDs
+import customtkinter # a more modern tkinter
+from typing import Union, Callable, List # to use FloatSpinbox from the customtkinter tutorial
 
 # https://www.geeksforgeeks.org/load-csv-data-into-list-and-dictionary-using-python/
 
+# constants
 CUSTOMERS_FILE = "customers.csv"
 STOCK_FILE = "stock.csv"
 
-itemsNames = ["test1", "test2", "test3", "test4", "test5", "test6"]
+ITEM_NAMES = ["test1", "test2", "test3", "test4", "test5", "test6"]
 
-customers = []
+def loadPastCustomerOrders():
+    pastCustomerOrders = {}
+    with open(CUSTOMERS_FILE, "r") as data:
+        for order in csv.reader(data):
 
-# load past customer orders
-pastCustomerOrders = {}
-with open(CUSTOMERS_FILE, "r") as data:
-    for order in csv.reader(data):
-        if order[0] not in pastCustomerOrders:
-            pastCustomerOrders[order[0]] = {
-                "recieptIDs": [],
-                "itemsCurrentlyRented": {},
+            # initialise new customer if not in dict
+            # order[0] is customer name
+            if order[0] not in pastCustomerOrders:
+                pastCustomerOrders[order[0]] = {
+                    "recieptIDs": [],
+                    "itemsCurrentlyRented": {},
+                }
+
+            # order[1] is reciept ID
+            pastCustomerOrders[order[0]]["recieptIDs"].append(order[1])
+
+            itemsCurrentlyRented = {
+                # using eval to convert string from csv to dict
+                # key is item name, value is amount, order[2] is itemsCurrentlyRented as string
+                key: int(value) for key, value in eval(order[2]).items()
             }
-        pastCustomerOrders[order[0]]["recieptIDs"].append(order[1])
-        itemsCurrentlyRented = {
-            key: int(value) for key, value in eval(order[2]).items()
-        }
-        for item, amount in itemsCurrentlyRented.items():
-            if item in pastCustomerOrders[order[0]]["itemsCurrentlyRented"]:
-                pastCustomerOrders[order[0]]["itemsCurrentlyRented"][item] += amount
-            else:
-                pastCustomerOrders[order[0]]["itemsCurrentlyRented"][item] = amount
 
+            # increment amount or add new item
+            for item, amount in itemsCurrentlyRented.items():
+                if item in pastCustomerOrders[order[0]]["itemsCurrentlyRented"]:
+                    pastCustomerOrders[order[0]]["itemsCurrentlyRented"][item] += amount
+                else:
+                    pastCustomerOrders[order[0]]["itemsCurrentlyRented"][item] = amount
 
+    return pastCustomerOrders
+
+# for testing or for on an admin page if I added that
 def resetStock():
     # https://www.w3schools.com/python/python_file_write.asp
     with open(STOCK_FILE, "w") as file:
@@ -43,9 +53,13 @@ def resetStock():
         file.write("test5,100\n")
         file.write("test6,100\n")
 
+# customer class to store order details
+class Customer:
 
-class Customers:
+    # initialise a customers order
     def __init__(self, name, ID, items):
+
+        # store details to object
         self.name = name
         self.recieptID = ID
         self.items = items
@@ -53,22 +67,29 @@ class Customers:
         self.updateStock()
         self.storeDetails()
 
+    # update the stock file
     def updateStock(self):
         with open(STOCK_FILE, "r") as file:
             lines = file.readlines()
 
+        # go through each item in the order check if it is in each line of the stock file
         for item, amount in self.items.items():
             for i, line in enumerate(lines):
                 if item in line:
+                    # simple string manipulation
                     lineParts = line.split(",")
                     lineParts[1] = str(int(lineParts[1]) - amount)
                     lines[i] = ",".join(lineParts)
                     lines[i] += "\n"
 
+        # write the updated stock file
         with open(STOCK_FILE, "w") as file:
             file.writelines(lines)
 
+
     def storeDetails(self):
+
+        # more string manipulation, using str() on a dict to convert it to a string, quite interesting as I have never done this before
         order = f"\n{self.name}, {str(self.recieptID)}, {str(self.items)}"
         print(order)
         with open(CUSTOMERS_FILE, "a") as file:
@@ -77,7 +98,8 @@ class Customers:
 
 # https://customtkinter.tomschimansky.com/tutorial/spinbox
 
-
+# I changed a few things in the customtkinter tutorial code to suit my needs, I have added comments where I have done so
+# -----------------------Start of code used from customtkinter tutorial-------------------------------
 class WidgetName(customtkinter.CTkFrame):
     def __init__(self, *args, width: int = 100, height: int = 32, **kwargs):
         super().__init__(*args, width=width, height=height, **kwargs)
@@ -126,7 +148,7 @@ class FloatSpinbox(customtkinter.CTkFrame):
         )
         self.add_button.grid(row=0, column=2, padx=(0, 3), pady=3)
 
-        # default value
+        # default value changed to 0 from 35
         self.entry.insert(0, "0")
 
     def add_button_callback(self):
@@ -144,7 +166,9 @@ class FloatSpinbox(customtkinter.CTkFrame):
             self.command()
         try:
             value = (
+                # changed from float to int
                 int(self.entry.get()) - self.step_size
+                # added an if statement to make sure the value is not less than 0
                 if int(self.entry.get()) > 0
                 else 0
             )
@@ -162,53 +186,86 @@ class FloatSpinbox(customtkinter.CTkFrame):
     def set(self, value: float):
         self.entry.delete(0, "end")
         self.entry.insert(0, str(float(value)))
+# -----------------------End of code used from customtkinter tutorial-------------------------------
 
+# Using customtkinter format conventions from https://customtkinter.tomschimansky.com/tutorial/frames
 
+# create list to store customers and only customers
+customers: List[Customer] = []
+
+# define the App class
 class App(customtkinter.CTk):
     def __init__(self):
-        global itemsNames
         super().__init__()
 
-        self.title("my app")
-        self.geometry("400x400")
-        # self.grid_columnconfigure(3, weight=1)
-        # self.grid_rowconfigure((0, 0), weight=1)
-
+        # configure window
+        self.title("Julie's Party Hire Store")
+        self.geometry("600x450")
+        self.resizable(width=False, height=False)
+        
+        # create widgets
+        # create name entry
         self.nameLabel = customtkinter.CTkLabel(self, text="Name:")
         self.nameLabel.grid(row=0, column=0, padx=20, pady=20)
         self.name = customtkinter.CTkEntry(self, width=150, height=30, border_width=0)
         self.name.grid(row=0, column=1, padx=20, pady=20)
 
-        self.itemNameLabels = [customtkinter.CTkLabel(self, text=itemsNames[i]) for i in range(6)]
+        # create item entrys
+        self.itemNameLabels = [
+            customtkinter.CTkLabel(self, text=ITEM_NAMES[i]) for i in range(6)
+        ]
         self.items = [FloatSpinbox(self, width=150, step_size=1) for i in range(6)]
 
+        topRowOffset = 3 * 1 # 3 rows, 1 empty row
+
         for i, item in enumerate(self.itemNameLabels):
-            item.grid(row=((i + 3) // 3) * 2, column=i % 3, padx=20, pady=20) # +3 so there is an empty row for the name
+            item.grid(
+                # use topRowOffset so there is an empty row for the name
+                # used i%3 to make sure there are 3 items in each column
+                # used i//3 to make sure that every 3 items, it goes to a new row
+                # used *2 to leave a space for the items in between
+                row=((i + topRowOffset) // 3) * 2, column=i % 3, padx=20, pady=20
+            )
         for i, item in enumerate(self.items):
             item.grid(
-                row=((i + 3) // 3) * 2 + 1, column=i % 3, padx=20, pady=20)  # +3 so there is an empty row for the name
-            
-        self.submitButton = customtkinter.CTkButton(self, text="Submit", command=self.submitNewOrder)
+                # use topRowOffset so there is an empty row for the name
+                # used i%3 to make sure there are 3 items in each column
+                # used i//3 to make sure that every 3 items, it goes to a new row
+                # used +1 for rows to offset items from item names
+                # used *2 to leave a space for the item names in between
+                row=((i + topRowOffset) // 3) * 2 + 1, column=i % 3, padx=20, pady=20
+            )
+
+        # create submit button that calls submitNewOrder when pressed
+        self.submitButton = customtkinter.CTkButton(
+            self, text="Submit", command=self.submitNewOrder
+        )
         self.submitButton.grid(row=7, column=1, padx=20, pady=20)
 
+    # finish the transaction by storing the order in a file and showing the reciept
     def submitNewOrder(self):
-        global itemsNames, customers
+        global ITEM_NAMES, customers
         name = self.name.get()
         ID = random.randint(1000, 9999)
         items = {}
         for i, item in enumerate(self.items):
             if item.get() is not None:
-                items[itemsNames[i]] = item.get()
+                items[ITEM_NAMES[i]] = item.get()
 
-        customers.append(Customers(name, ID, items)) 
+        customers.append(Customer(name, ID, items))
 
-    # button = customtkinter.CTkButton(
-    #     app, text="Submit", command=submitNewOrder(name, ID, items)
-    # )
-    # button.grid(row=0, column=0, padx=20, pady=20)
+        # use negative index to get the most recent customer
+        self.showReciept(customers[-1])
 
-    # app.mainloop()
+    # show the reciept for the customer
+    def showReciept(self, customer: Customer):
+        del self.name
+        del self.nameLabel
+        del self.itemNameLabels
+        del self.items
+        del self.submitButton
 
 
+# start the app
 app = App()
 app.mainloop()
