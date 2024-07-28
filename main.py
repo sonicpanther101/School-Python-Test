@@ -4,7 +4,6 @@ from ast import literal_eval
 from typing import (
     Union,
     Callable,
-    List,
 )  # to use FloatSpinbox from the customtkinter tutorial
 import customtkinter  # a more modern tkinter
 from PIL import Image  # to load images
@@ -21,67 +20,91 @@ ITEM_NAMES = [
     "Cutlery Sets",
     "BBQs",
     "Table Cloths",
-    "Napkin Rings"
+    "Napkin Rings",
 ]
 
 ITEM_IMAGES = [f"images/{ITEM_NAME}.png" for ITEM_NAME in ITEM_NAMES]
 
+
 def load_past_customer_orders():
-    """Needed to load past customer orders from file, used in App.show_orders()"""
+    """Needed to load past customer orders from file, used in App.show_orders_page()"""
     past_customer_orders = []
+    # open file and read each line
     with open(CUSTOMERS_FILE, "r", encoding="utf-8") as data:
         for order in csv.reader(data):
+            # if the order has at least 3 items (a valid order)
+            if len(order) >= 3:
+                # create a new Customer object for each order with some funky indexing
+                past_customer_orders.append(
+                    Customer(
+                        order[0], order[1], literal_eval(",".join(order[2:])), "init"
+                    )
+                )
 
-            if len(order) == 3:
-                # create a new Customer object for each order
-                past_customer_orders.append(Customer(order[0], order[1], literal_eval(order[2])))
-
-    return past_customer_orders
+    # reverse the list so the most recent order is at the top
+    return past_customer_orders[::-1]
 
 
 def load_stock():
-    """Needed to load stock from file, used when 
+    """Needed to load stock from file, used when
     the user inputs a new order with too many items"""
     initial_stock = {}
-    with open(STOCK_FILE, "r", encoding="utf-8") as data:
-        for item in csv.reader(data):
-            stock[item[0]] = int(item[1])
+    # open file and read each line
+    with open(STOCK_FILE, "r", encoding="utf-8") as data1:
+        for item in csv.reader(data1):
+            # write the stock to a dictionary
+            initial_stock[item[0]] = int(item[1])
     return initial_stock
-
-
-stock = load_stock()
 
 
 def reset_stock():
     """for testing or for on an admin page if I added that
     https://www.w3schools.com/python/python_file_write.asp"""
+
+    # open file and write each line to the default stock
     with open(STOCK_FILE, "w", encoding="utf-8") as file:
         file.writelines(
             [
-                "Chairs,100\n",
-                "Tables,100\n",
-                "Cutlery Sets,100\n",
-                "BBQs,100\n",
-                "Table Cloths,100\n",
-                "Napkin Rings,100\n",
+                "Chairs,500\n",
+                "Tables,500\n",
+                "Cutlery Sets,500\n",
+                "BBQs,500\n",
+                "Table Cloths,500\n",
+                "Napkin Rings,500\n",
             ]
         )
 
 
+# if the stock file is empty, reset it
+
+# with open(STOCK_FILE, "r", encoding="utf-8") as data2:
+#     for item1 in csv.reader(data2):
+#         if int(item1[1]) == 0:
+#             reset_stock()
+
+
 class Customer:
     """customer class to store order details"""
+
     # initialise a customers order
-    def __init__(self, name, order_id, items):
+    def __init__(self, name, order_id, items, mode="normal"):
         # store order details to object
         self.name = name
         self.receipt_id = order_id
         self.items = items
 
-        self.update_stock()
-        self.store_details()
+        # use this to avoid updating the stock upon addingpast orders from the file
+        # this caused serious issues before I added it
+        # it would recursively update the stock and cause an infinite loop
+        # it made the cusomers file 2.5gb, which is not ideal
+        if mode != "init":
+            self.update_stock()
+            self.store_details()
 
     def update_stock(self):
         """update the stock file"""
+
+        # open file and read each line
         with open(STOCK_FILE, "r", encoding="utf-8") as file:
             lines = file.readlines()
 
@@ -106,6 +129,7 @@ class Customer:
         # this is quite interesting as I have never done this before
         order = f"\n{self.name}, {str(self.receipt_id)}, {str(self.items)}"
 
+        # open file and write new line
         with open(CUSTOMERS_FILE, "a", encoding="utf-8") as file:
             file.write(order)
 
@@ -118,12 +142,14 @@ class Customer:
 # ---------Start of code used from customtkinter tutorial--------
 class WidgetName(customtkinter.CTkFrame):
     """Custom widget name"""
+
     def __init__(self, *args, width: int = 100, height: int = 32, **kwargs):
         super().__init__(*args, width=width, height=height, **kwargs)
 
 
 class FloatSpinbox(customtkinter.CTkFrame):
     """Custom float spinbox widget"""
+
     def __init__(
         self,
         *args,
@@ -216,12 +242,63 @@ class FloatSpinbox(customtkinter.CTkFrame):
 # https://customtkinter.tomschimansky.com/tutorial/frames
 
 # create list to store customers and only customers
-customers: List[Customer] = load_past_customer_orders()
+customers = load_past_customer_orders()
+
+# create dictionary to store stock in a item:quantity format
+stock = load_stock()
+
+
+class OrdersFrame(customtkinter.CTkScrollableFrame):
+    """Orders Frame"""
+
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+        self.orders = []
+        self.order_remove_buttons = []
+
+    def update_orders(self):
+        """update orders"""
+
+        # create orders widget
+        self.orders = [
+            customtkinter.CTkLabel(
+                self,
+                # use of \ to make a new line in the code not the output
+                text=f"Receipt:\n\
+Full Name: {customer.name}\n\
+Receipt ID: {customer.receipt_id}\n\
+Items: \n{format_items(customer.items)}",
+                width=300,
+                justify="left",
+            )
+            for customer in customers
+        ]
+
+        # add orders to grid
+        for i, item in enumerate(self.orders):
+            item.grid(row=i, column=0, padx=0, pady=10)
+
+        # create remove buttons
+        self.order_remove_buttons = [
+            customtkinter.CTkButton(
+                self,
+                text="",
+                command=lambda i=i: app.remove_order(i),
+                width=40,
+            )
+            for i in range(len(self.orders))
+        ]
+
+        # add remove buttons to grid
+        for i, item in enumerate(self.order_remove_buttons):
+            item.grid(row=i, column=1, padx=0, pady=0)
 
 
 # define the App class
 class App(customtkinter.CTk):
     """main application"""
+
     def __init__(self):
         super().__init__()
 
@@ -229,29 +306,40 @@ class App(customtkinter.CTk):
         self.title("Julie's Party Hire Store")
         self.geometry("600x800")
         self.resizable(width=False, height=False)
+        self.order_to_remove = None
 
-        # create widgets
-        self.receipt = customtkinter.CTkLabel(self)
+        # create widgets, not adding them to the grid yet
+        self.current_page = "add_order_page"
+
+        # create show stock button that calls show_stock_page when pressed
+        self.show_stock_button = customtkinter.CTkButton(
+            self, text="Show Stock", command=self.show_stock_page
+        )
+        # create stock list
+        self.stock = customtkinter.CTkLabel(self, text="Stock:")
 
         # create close button that calls close_window when pressed
         self.close_button = customtkinter.CTkButton(
             self, text="Close", command=self.close_window
         )
-        self.close_button.grid(row=1, column=1, padx=20, pady=20)
+        self.close_button.grid(row=0, column=2, padx=20, pady=20)
+
+        # create swap page button that calls show_orders_page when pressed
+        # by default and add_order_page when pressed once
+        self.swap_page_button = customtkinter.CTkButton(
+            self, text="Show Orders", command=self.swap_page
+        )
+        self.swap_page_button.grid(row=1, column=2, padx=20, pady=20)
 
         # create name entry
-        self.name_label = customtkinter.CTkLabel(self, text="Name:")
-        self.name_label.grid(row=0, column=0, padx=20, pady=20)
+        self.name_label = customtkinter.CTkLabel(self, text="Full Name:")
         self.name = customtkinter.CTkEntry(self, width=150, height=30, border_width=0)
-        self.name.grid(row=0, column=1, padx=20, pady=20)
 
         # create receipt ID entry
         self.receipt_id_label = customtkinter.CTkLabel(self, text="Receipt ID:")
-        self.receipt_id_label.grid(row=1, column=0, padx=20, pady=20)
         self.receipt_id = customtkinter.CTkEntry(
             self, width=150, height=30, border_width=0
         )
-        self.receipt_id.grid(row=1, column=1, padx=20, pady=20)
 
         # create item entrys
         self.item_image_imports = [
@@ -270,6 +358,63 @@ class App(customtkinter.CTk):
             customtkinter.CTkLabel(self, text=ITEM_NAMES[i]) for i in range(6)
         ]
         self.items = [FloatSpinbox(self, width=150, step_size=1) for i in range(6)]
+
+        # create submit button that calls submit_new_order when pressed
+        self.submit_button = customtkinter.CTkButton(
+            self, text="Add Order", command=self.submit_new_order
+        )
+
+        # create orders frame
+        self.orders_frame = OrdersFrame(master=self, width=350, height=700)
+
+        # add widgets to grid for the add order page
+        self.add_order_page()
+
+    def swap_page(self):
+        """swaps the current page"""
+        if (
+            self.current_page == "add_order_page"
+            or self.current_page == "show_stock_page"
+        ):
+            # change the text of the button
+            self.swap_page_button.configure(text="Show Add Order Page")
+            self.current_page = "show_orders_page"
+            # call show_orders_page
+            self.show_orders_page()
+        elif self.current_page == "show_orders_page":
+            # change the text of the button
+            self.swap_page_button.configure(text="Show Orders")
+            self.current_page = "add_order_page"
+            # call add_order_page
+            self.add_order_page()
+
+    def show_stock_page(self):
+        """shows the stock page"""
+        self.current_page = "show_stock_page"
+        self.swap_page_button.configure(text="Show Orders")
+
+        # clear all items from other pages in the grid
+        self.orders_frame.grid_forget()
+        self.show_stock_button.grid_forget()
+
+        self.stock.grid(row=0, column=0, padx=20, pady=20)
+
+        self.stock.configure(text=f"Stock:\n{format_items(stock)}")
+
+    def add_order_page(self):
+        """page to add an order"""
+
+        # clear all items from other pages in the grid
+        self.orders_frame.grid_forget()
+        self.show_stock_button.grid_forget()
+        self.stock.grid_forget()
+
+        # add widgets to grid for the add order page
+        self.name_label.grid(row=0, column=0, padx=20, pady=20)
+        self.name.grid(row=0, column=1, padx=20, pady=20)
+
+        self.receipt_id_label.grid(row=1, column=0, padx=20, pady=20)
+        self.receipt_id.grid(row=1, column=1, padx=20, pady=20)
 
         top_row_offset = 3 * 2  # 3 empty columns, 2 empty rows
 
@@ -309,30 +454,29 @@ class App(customtkinter.CTk):
                 pady=20,
             )
 
-        # create submit button that calls submit_new_order when pressed
-        self.submit_button = customtkinter.CTkButton(
-            self, text="Add Order", command=self.submit_new_order
-        )
         self.submit_button.grid(row=13, column=1, padx=20, pady=20)
 
     # finish the transaction by storing the order in a file and showing the receipt
     def submit_new_order(self):
-        """finish the transaction by checking the order and 
+        """finish the transaction by checking the order and
         storing the order in a file and showing the past orders"""
         # check if order is valid
         if self.order_validation():
+            # store the order details
             name = self.name.get()
             new_order_id = self.receipt_id.get()
             items = {}
             for i, item in enumerate(self.items):
                 if item.get() is not None:
+                    # nested dictionary
                     items[ITEM_NAMES[i]] = item.get()
 
             # use of global variable
-            customers.append(Customer(name, new_order_id, items))
+            # using insert(0) so that the new order is at the top
+            customers.insert(0, Customer(name, new_order_id, items))
 
-            # use negative index to get the most recent customer
-            self.show_receipt(customers[-1])
+            # show the past orders including the new order
+            self.show_orders_page()
 
     def order_validation(self):
         """check if order is valid"""
@@ -385,50 +529,139 @@ class App(customtkinter.CTk):
 
     def popup(self, message: str):
         """show error popup"""
+
+        # create new window
         popup = customtkinter.CTkToplevel(self)
         popup.geometry("200x100")
         popup.resizable(width=False, height=False)
         popup.title("Error")
+
+        # set the popup message
         customtkinter.CTkLabel(popup, text=message).pack()
         customtkinter.CTkButton(popup, text="Ok", command=popup.destroy).pack()
 
-    def show_receipt(self, customer: Customer):
-        """show the receipt for the customer"""
+    def show_orders_page(self):
+        """show the orders for the customer"""
         # remove old widgets
-        self.name.grid_remove()
-        self.name_label.grid_remove()
+        self.name.grid_forget()
+        self.name_label.grid_forget()
         for item in self.item_name_labels:
-            item.grid_remove()
+            item.grid_forget()
         for item in self.items:
-            item.grid_remove()
-        self.submit_button.grid_remove()
+            item.grid_forget()
+        for item in self.item_images:
+            item.grid_forget()
+        self.submit_button.grid_forget()
+        self.receipt_id.grid_forget()
+        self.receipt_id_label.grid_forget()
+        self.stock.grid_forget()
 
-        # create receipt widget
-        self.receipt = customtkinter.CTkLabel(
-            self,
-            # use of \ to make a new line in the code not the output
-            text=f"Receipt:\n\
-Full Name: {customer.name}\n\
-Receipt ID: {customer.receipt_id}\n\
-Items: \n{self.format_items(customer.items)}",
-            width=300,
-            justify="left",
+        # show orders
+        self.orders_frame.update_orders()
+        self.orders_frame.grid(row=0, column=0, padx=20, pady=20, rowspan=5)
+
+        # add show stock button
+        self.show_stock_button.grid(row=2, column=2, padx=20, pady=20)
+
+    def remove_order(self, i: int):
+        """remove the order"""
+        # set the order to remove for later
+        self.order_to_remove = i
+
+        # ask for confirmation
+        self.confirm_action(
+            f"remove order{customers[i].receipt_id}", self.confirmed_remove_order
         )
-        self.receipt.grid(row=0, column=1, padx=20, pady=20)
 
-    def format_items(self, items: dict):
-        """format the items for the receipt"""
-        output = ""
-        # iterating through dict
-        for item, amount in items.items():
-            if amount > 0:
-                output += f"{item}: {amount}\n"
-        return output
+    def confirmed_remove_order(self):
+        """remove the order"""
+
+        # check that the order exists
+        if self.order_to_remove >= len(customers):
+            self.popup("Order does not exist")
+            return
+
+        # update the stock file
+        with open(STOCK_FILE, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+
+        # go through each item in the order check if it is in each line of the stock file
+        for item, amount in customers[self.order_to_remove].items.items():
+            for i, line in enumerate(lines):
+                if item in line:
+                    # simple string manipulation
+                    line_parts = line.split(",")
+                    # simple indexing to omit the newline character
+                    line_parts[1] = str(int(line_parts[1][:-1]) + amount)
+                    lines[i] = ",".join(line_parts)
+                    lines[i] += "\n"
+
+        # write the updated stock file
+        with open(STOCK_FILE, "w", encoding="utf-8") as file:
+            file.writelines(lines)
+
+        # update the customer file
+        with open(CUSTOMERS_FILE, "r", encoding="utf-8") as file:
+            lines = file.readlines()
+
+        # remove the order from the customer file
+        for i, line in enumerate(lines):
+            if (
+                str(customers[self.order_to_remove].receipt_id) in line
+                and customers[self.order_to_remove].name in line
+            ):
+                lines.pop(i)
+
+        # write the updated customer file
+        with open(CUSTOMERS_FILE, "w", encoding="utf-8") as file:
+            file.writelines(lines)
+
+        # remove the customer from the list
+        customers.pop(self.order_to_remove)
+        self.order_to_remove = None
+
+        # bad fix to reload the page after removing an order
+        self.add_order_page()
+        self.show_orders_page()
+
+    def confirm_action(self, action: str, function: Callable):
+        """confirm if the user wants to perform an action"""
+
+        # create new window
+        confirm = customtkinter.CTkToplevel(self)
+        confirm.geometry("300x150")
+        confirm.resizable(width=False, height=False)
+        confirm.title("Confirm")
+
+        # set the message
+        customtkinter.CTkLabel(
+            confirm, text=f"Are you sure you want to \n{action}?"
+        ).pack()
+        customtkinter.CTkButton(confirm, text="No", command=confirm.destroy).pack()
+        # using blank label to leave gap between buttons
+        customtkinter.CTkLabel(confirm, text="").pack()
+
+        # cool passing 2 functions as argument using lambda
+        customtkinter.CTkButton(
+            confirm,
+            text="Yes",
+            command=lambda: [confirm.destroy(), function()],
+        ).pack()
 
     def close_window(self):
-        """close the window"""
+        """closes the window"""
         # destroy the window
         self.destroy()
+
+
+def format_items(items: dict):
+    """format the items for the receipt"""
+    output = ""
+    # iterating through dict
+    for item, amount in items.items():
+        if amount > 0:
+            output += f"{item}: {amount}\n"
+    return output
 
 
 # start the app
