@@ -1,4 +1,5 @@
 """to read and write csv files"""
+
 import csv
 from ast import literal_eval
 from typing import (
@@ -311,10 +312,6 @@ class App(customtkinter.CTk):
         # create widgets, not adding them to the grid yet
         self.current_page = "add_order_page"
 
-        # create show stock button that calls show_stock_page when pressed
-        self.show_stock_button = customtkinter.CTkButton(
-            self, text="Show Stock", command=self.show_stock_page
-        )
         # create stock list
         self.stock = customtkinter.CTkLabel(self, text="Stock:")
 
@@ -365,17 +362,14 @@ class App(customtkinter.CTk):
         )
 
         # create orders frame
-        self.orders_frame = OrdersFrame(master=self, width=350, height=700)
+        self.orders_frame = OrdersFrame(master=self, width=350, height=750)
 
         # add widgets to grid for the add order page
         self.add_order_page()
 
     def swap_page(self):
         """swaps the current page"""
-        if (
-            self.current_page == "add_order_page"
-            or self.current_page == "show_stock_page"
-        ):
+        if self.current_page == "add_order_page":
             # change the text of the button
             self.swap_page_button.configure(text="Show Add Order Page")
             self.current_page = "show_orders_page"
@@ -388,25 +382,11 @@ class App(customtkinter.CTk):
             # call add_order_page
             self.add_order_page()
 
-    def show_stock_page(self):
-        """shows the stock page"""
-        self.current_page = "show_stock_page"
-        self.swap_page_button.configure(text="Show Orders")
-
-        # clear all items from other pages in the grid
-        self.orders_frame.grid_forget()
-        self.show_stock_button.grid_forget()
-
-        self.stock.grid(row=0, column=0, padx=20, pady=20)
-
-        self.stock.configure(text=f"Stock:\n{format_items(stock)}")
-
     def add_order_page(self):
         """page to add an order"""
 
         # clear all items from other pages in the grid
         self.orders_frame.grid_forget()
-        self.show_stock_button.grid_forget()
         self.stock.grid_forget()
 
         # add widgets to grid for the add order page
@@ -554,14 +534,15 @@ class App(customtkinter.CTk):
         self.submit_button.grid_forget()
         self.receipt_id.grid_forget()
         self.receipt_id_label.grid_forget()
-        self.stock.grid_forget()
+
+        # show the stock of each item
+        self.stock.grid(row=2, column=2, padx=20, pady=20)
+
+        self.stock.configure(text=f"Stock:\n{format_items(stock)}")
 
         # show orders
         self.orders_frame.update_orders()
-        self.orders_frame.grid(row=0, column=0, padx=20, pady=20, rowspan=5)
-
-        # add show stock button
-        self.show_stock_button.grid(row=2, column=2, padx=20, pady=20)
+        self.orders_frame.grid(row=0, column=0, padx=20, pady=20, rowspan=100)
 
     def remove_order(self, i: int):
         """remove the order"""
@@ -574,7 +555,7 @@ class App(customtkinter.CTk):
         )
 
     def confirmed_remove_order(self):
-        """remove the order"""
+        """once confirmed, remove the order"""
 
         # check that the order exists
         if self.order_to_remove >= len(customers):
