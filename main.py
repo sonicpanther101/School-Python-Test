@@ -74,7 +74,7 @@ class Customer:
     def __init__(self, name, order_id, items):
         # store order details to object
         self.name = name
-        self.reciept_id = order_id
+        self.receipt_id = order_id
         self.items = items
 
         self.update_stock()
@@ -104,7 +104,7 @@ class Customer:
         """store customer details to file"""
         # more string manipulation, using str() on a dict to convert it to a string
         # this is quite interesting as I have never done this before
-        order = f"\n{self.name}, {str(self.reciept_id)}, {str(self.items)}"
+        order = f"\n{self.name}, {str(self.receipt_id)}, {str(self.items)}"
 
         with open(CUSTOMERS_FILE, "a", encoding="utf-8") as file:
             file.write(order)
@@ -231,7 +231,7 @@ class App(customtkinter.CTk):
         self.resizable(width=False, height=False)
 
         # create widgets
-        self.reciept = customtkinter.CTkLabel(self)
+        self.receipt = customtkinter.CTkLabel(self)
 
         # create close button that calls close_window when pressed
         self.close_button = customtkinter.CTkButton(
@@ -245,13 +245,13 @@ class App(customtkinter.CTk):
         self.name = customtkinter.CTkEntry(self, width=150, height=30, border_width=0)
         self.name.grid(row=0, column=1, padx=20, pady=20)
 
-        # create reciept ID entry
-        self.reciept_id_label = customtkinter.CTkLabel(self, text="Reciept ID:")
-        self.reciept_id_label.grid(row=1, column=0, padx=20, pady=20)
-        self.reciept_id = customtkinter.CTkEntry(
+        # create receipt ID entry
+        self.receipt_id_label = customtkinter.CTkLabel(self, text="Receipt ID:")
+        self.receipt_id_label.grid(row=1, column=0, padx=20, pady=20)
+        self.receipt_id = customtkinter.CTkEntry(
             self, width=150, height=30, border_width=0
         )
-        self.reciept_id.grid(row=1, column=1, padx=20, pady=20)
+        self.receipt_id.grid(row=1, column=1, padx=20, pady=20)
 
         # create item entrys
         self.item_image_imports = [
@@ -266,14 +266,14 @@ class App(customtkinter.CTk):
             customtkinter.CTkLabel(self, image=self.item_image_imports[i], text="")
             for i in range(6)
         ]
-        self.itemname_labels = [
+        self.item_name_labels = [
             customtkinter.CTkLabel(self, text=ITEM_NAMES[i]) for i in range(6)
         ]
         self.items = [FloatSpinbox(self, width=150, step_size=1) for i in range(6)]
 
         top_row_offset = 3 * 2  # 3 empty columns, 2 empty rows
 
-        for i, item in enumerate(self.itemname_labels):
+        for i, item in enumerate(self.item_name_labels):
             item.grid(
                 # use top_row_offset so there is an empty row for the name
                 # used i%3 to make sure there are 3 items in each column
@@ -315,14 +315,14 @@ class App(customtkinter.CTk):
         )
         self.submit_button.grid(row=13, column=1, padx=20, pady=20)
 
-    # finish the transaction by storing the order in a file and showing the reciept
+    # finish the transaction by storing the order in a file and showing the receipt
     def submit_new_order(self):
         """finish the transaction by checking the order and 
         storing the order in a file and showing the past orders"""
         # check if order is valid
         if self.order_validation():
             name = self.name.get()
-            new_order_id = self.reciept_id.get()
+            new_order_id = self.receipt_id.get()
             items = {}
             for i, item in enumerate(self.items):
                 if item.get() is not None:
@@ -332,7 +332,7 @@ class App(customtkinter.CTk):
             customers.append(Customer(name, new_order_id, items))
 
             # use negative index to get the most recent customer
-            self.show_reciept(customers[-1])
+            self.show_receipt(customers[-1])
 
     def order_validation(self):
         """check if order is valid"""
@@ -347,13 +347,13 @@ class App(customtkinter.CTk):
             self.popup("Please enter your full name")
             return False
 
-        # check if reciept ID is valid
-        if self.reciept_id.get() == "":
-            self.popup("Please enter a reciept ID")
+        # check if receipt ID is valid
+        if self.receipt_id.get() == "":
+            self.popup("Please enter a receipt ID")
             return False
-        # better version of checking if reciept ID is numeric than try else
-        if self.reciept_id.get().isnumeric() is False:
-            self.popup("Please enter a valid reciept ID")
+        # better version of checking if receipt ID is numeric than try else
+        if self.receipt_id.get().isnumeric() is False:
+            self.popup("Please enter a valid receipt ID")
             return False
 
         # check if at least one item is has an amount more than 0
@@ -392,32 +392,32 @@ class App(customtkinter.CTk):
         customtkinter.CTkLabel(popup, text=message).pack()
         customtkinter.CTkButton(popup, text="Ok", command=popup.destroy).pack()
 
-    def show_reciept(self, customer: Customer):
-        """show the reciept for the customer"""
+    def show_receipt(self, customer: Customer):
+        """show the receipt for the customer"""
         # remove old widgets
         self.name.grid_remove()
         self.name_label.grid_remove()
-        for item in self.itemname_labels:
+        for item in self.item_name_labels:
             item.grid_remove()
         for item in self.items:
             item.grid_remove()
         self.submit_button.grid_remove()
 
-        # create reciept widget
-        self.reciept = customtkinter.CTkLabel(
+        # create receipt widget
+        self.receipt = customtkinter.CTkLabel(
             self,
             # use of \ to make a new line in the code not the output
-            text=f"Reciept:\n\
+            text=f"Receipt:\n\
 Full Name: {customer.name}\n\
-Reciept ID: {customer.reciept_id}\n\
+Receipt ID: {customer.receipt_id}\n\
 Items: \n{self.format_items(customer.items)}",
             width=300,
             justify="left",
         )
-        self.reciept.grid(row=0, column=1, padx=20, pady=20)
+        self.receipt.grid(row=0, column=1, padx=20, pady=20)
 
     def format_items(self, items: dict):
-        """format the items for the reciept"""
+        """format the items for the receipt"""
         output = ""
         # iterating through dict
         for item, amount in items.items():
